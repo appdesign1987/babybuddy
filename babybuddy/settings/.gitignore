@@ -1,0 +1,9 @@
+*
+!__init__.py
+!base.py
+!ci.py
+!development.py
+!gitpod.py
+!heroku.py
+!production.example.py
+!test.py

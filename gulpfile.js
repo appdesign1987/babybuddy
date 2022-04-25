@@ -1,21 +1,31 @@
-var gulp = require('gulp');
+const gulp = require('gulp');
 
-var concat = require('gulp-concat');
-var del = require('del');
-var es = require('child_process').execSync;
-var flatten = require('gulp-flatten');
-var fontello = require('gulp-fontello');
-var pump = require('pump');
-var sass = require('gulp-sass')(require('sass'));
-var sassGlob = require('gulp-sass-glob');
-var styleLint = require('gulp-stylelint');
-var spawn = require('child_process').spawn;
+const concat = require('gulp-concat');
+const del = require('del');
+const es = require('child_process').execSync;
+const flatten = require('gulp-flatten');
+const fontello = require('gulp-fontello');
+const pump = require('pump');
+const removeSourcemaps = require('gulp-remove-sourcemaps');
+const sass = require('gulp-sass')(require('sass'));
+const sassGlob = require('gulp-sass-glob');
+const styleLint = require('gulp-stylelint');
+const spawn = require('child_process').spawn;
 
-var config = require('./gulpfile.config.js');
+const config = require('./gulpfile.config.js');
 
 /**
  * Support functions for Gulp tasks.
  */
+
+function _runInPipenv(command, cb) {
+    command.unshift('run');
+    command = command.concat(process.argv.splice(3));
+    spawn('pipenv', command, { stdio: 'inherit' }).on('exit', function (code) {
+        if (code) process.exit(code);
+        cb();
+    });
+}
 
 /**
  * Deletes local static files.
@@ -81,6 +91,33 @@ function coverage(cb) {
 }
 
 /**
+ * Builds the documentation site locally.
+ *
+ * @param cb
+ */
+function docsBuild(cb) {
+    _runInPipenv(['mkdocs', 'build'], cb);
+}
+
+/**
+ * Deploys the documentation site to GitHub Pages.
+ *
+ * @param cb
+ */
+function docsDeploy(cb) {
+    _runInPipenv(['mkdocs', 'gh-deploy'], cb);
+}
+
+/**
+ * Serves the documentation site, watching for changes.
+ *
+ * @param cb
+ */
+function docsWatch(cb) {
+    _runInPipenv(['mkdocs', 'serve'], cb);
+}
+
+/**
  * Builds and copies "extra" static files to configured paths.
  *
  * @param cb
@@ -110,40 +147,25 @@ function extras(cb) {
 }
 
 /**
+ * Runs Black formatting on Python code.
+ *
+ * @param cb
+ */
+function format(cb) {
+    _runInPipenv(['black', '.'], cb);
+}
+
+/**
  * Runs linting on Python and SASS code.
  *
  * @param cb
  */
 function lint(cb) {
-    var command = ['run', 'flake8', '--exclude=etc,migrations,manage.py,node_modules,settings'];
-    command = command.concat(process.argv.splice(3));
-    spawn('pipenv', command, { stdio: 'inherit' }).on('exit', function (code) {
-        if (code) process.exit(code);
-        cb();
-    });
+    _runInPipenv(['black', '.', '--check', '--diff', '--color'], cb);
 
     pump([
         gulp.src(config.watchConfig.stylesGlob),
         styleLint({
-            config: {
-                extends: 'stylelint-config-recommended-scss',
-                plugins: [
-                    'stylelint-order',
-                    'stylelint-scss'
-                ],
-                rules: {
-                    'at-rule-no-vendor-prefix': true,
-                    'indentation': 4,
-                    'media-feature-name-no-vendor-prefix': true,
-                    'order/order': [
-                        'declarations',
-                        'rules'
-                    ],
-                    'property-no-vendor-prefix': true,
-                    'selector-no-vendor-prefix': true,
-                    'value-no-vendor-prefix': true
-                }
-            },
             reporters: [
                 { formatter: 'string', console: true }
             ]
@@ -159,19 +181,28 @@ function lint(cb) {
 function scripts(cb) {
     pump([
         gulp.src(config.scriptsConfig.vendor),
+        removeSourcemaps(),
         concat('vendor.js'),
         gulp.dest(config.scriptsConfig.dest)
     ], cb);
 
     pump([
         gulp.src(config.scriptsConfig.graph),
+        removeSourcemaps(),
         concat('graph.js'),
         gulp.dest(config.scriptsConfig.dest)
     ], cb);
 
     pump([
         gulp.src(config.scriptsConfig.app),
+        removeSourcemaps(),
         concat('app.js'),
+        gulp.dest(config.scriptsConfig.dest)
+    ], cb);
+
+    pump([
+        gulp.src(config.scriptsConfig.tags_editor),
+        concat('tags_editor.js'),
         gulp.dest(config.scriptsConfig.dest)
     ], cb);
 }
@@ -197,7 +228,7 @@ function styles(cb) {
  * @param cb
  */
 function test(cb) {
-    var command = [
+    let command = [
         'run',
         'python',
         'manage.py',
@@ -231,9 +262,9 @@ function test(cb) {
  */
 function updateglyphs(cb) {
     pump([
-        gulp.src(config.glyphFontCOnfig.configFile),
+        gulp.src(config.glyphFontConfig.configFile),
         fontello({ assetsOnly: false }),
-        gulp.dest(config.glyphFontCOnfig.dest)
+        gulp.dest(config.glyphFontConfig.dest)
     ], cb);
 }
 
@@ -250,12 +281,12 @@ function watch() {
  */
 
 gulp.task('collectstatic', function(cb) {
-    var command = ['run', 'python', 'manage.py', 'collectstatic'];
+    let command = ['run', 'python', 'manage.py', 'collectstatic'];
 
     /* Use base settings if no settings parameter is supplied. */
-    var parameters = process.argv.splice(3);
-    var noSettings = true;
-    for (var i = 0; i < parameters.length; i++) {
+    const parameters = process.argv.splice(3);
+    let noSettings = true;
+    for (let i = 0; i < parameters.length; i++) {
         if (parameters[i].substring(0, 10) === '--settings') {
             noSettings = false;
             break;
@@ -270,70 +301,43 @@ gulp.task('collectstatic', function(cb) {
 });
 
 gulp.task('compilemessages', function(cb) {
-    var command = ['run', 'python', 'manage.py', 'compilemessages'];
-    command = command.concat(process.argv.splice(3));
-    spawn('pipenv', command, { stdio: 'inherit' }).on('exit', cb);
+    _runInPipenv(['python', 'manage.py', 'compilemessages'], cb);
 });
 
 gulp.task('createcachetable', function(cb) {
-    var command = ['run', 'python', 'manage.py', 'createcachetable'];
-    command = command.concat(process.argv.splice(3));
-    spawn('pipenv', command, { stdio: 'inherit' }).on('exit', cb);
+    _runInPipenv(['python', 'manage.py', 'createcachetable'], cb);
 });
 
 gulp.task('fake', function(cb) {
-    var command = ['run', 'python', 'manage.py', 'fake'];
-    command = command.concat(process.argv.splice(3));
-    spawn('pipenv', command, { stdio: 'inherit' }).on('exit', cb);
+    _runInPipenv(['python', 'manage.py', 'fake'], cb);
 });
 
 gulp.task('migrate', function(cb) {
-    var command = ['run', 'python', 'manage.py', 'migrate'];
-    command = command.concat(process.argv.splice(3));
-    spawn('pipenv', command, { stdio: 'inherit' }).on('exit', cb);
+    _runInPipenv(['python', 'manage.py', 'migrate'], cb);
 });
 
 gulp.task('makemessages', function(cb) {
-    var command = ['run', 'python', 'manage.py', 'makemessages'];
-    command = command.concat(process.argv.splice(3));
-    spawn('pipenv', command, { stdio: 'inherit' }).on('exit', cb);
+    _runInPipenv(['python', 'manage.py', 'makemessages'], cb);
 });
 
 gulp.task('makemigrations', function(cb) {
-    var command = ['run', 'python', 'manage.py', 'makemigrations'];
-    command = command.concat(process.argv.splice(3));
-    spawn('pipenv', command, { stdio: 'inherit' }).on('exit', cb);
+    _runInPipenv(['python', 'manage.py', 'makemigrations'], cb);
 });
 
-/**
- * Runs the custom "reset" command to start a fresh database with fake data.
- */
 gulp.task('reset', function(cb) {
-    spawn(
-        'pipenv',
-        [
-            'run',
-            'python',
-            'manage.py',
-            'reset',
-            '--no-input'
-        ],
-        {
-            stdio: 'inherit'
-        }
-    ).on('exit', cb);
+    _runInPipenv(['python', 'manage.py', 'reset', '--no-input'], cb);
 });
 
 gulp.task('runserver', function(cb) {
-    var command = ['run', 'python', 'manage.py', 'runserver'];
+    let command = ['run', 'python', 'manage.py', 'runserver'];
 
     /**
      * Process any parameters. Any arguments found here will be removed from
      * the parameters list so other parameters continue to be passed to the
      * command.
      **/
-    var parameters = process.argv.splice(2);
-    for (var i = 0; i < parameters.length; i++) {
+    const parameters = process.argv.splice(2);
+    for (let i = 0; i < parameters.length; i++) {
         /* May be included because this is the default gulp command. */
         if (parameters[i] === 'runserver') {
             delete parameters[i];
@@ -353,6 +357,18 @@ gulp.task('runserver', function(cb) {
     spawn('pipenv', command, { stdio: 'inherit' }).on('exit', cb);
 });
 
+gulp.task('generateschema', function(cb) {
+    _runInPipenv([
+        'python',
+        'manage.py',
+        'generateschema',
+        '--title',
+        'Baby Buddy API',
+        '--file',
+        'openapi-schema.yml'
+    ], cb);
+});
+
 /**
  * Gulp commands.
  */
@@ -361,7 +377,15 @@ gulp.task('clean', clean);
 
 gulp.task('coverage', coverage);
 
+gulp.task('docs:build', docsBuild);
+
+gulp.task('docs:deploy', docsDeploy);
+
+gulp.task('docs:watch', docsWatch);
+
 gulp.task('extras', extras);
+
+gulp.task('format', format);
 
 gulp.task('lint', lint);
 

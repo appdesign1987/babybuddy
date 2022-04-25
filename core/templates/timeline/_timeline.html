@@ -28,6 +28,11 @@
                         {% for detail in object.details %}
                             <div><small>{{ detail }}</small></div>
                         {% endfor %}
+                        {% if object.tags %}
+                            <div>
+                                {% include "core/render_tag_list.html" with tags=object.tags %}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="card-footer text-muted">
                         {% blocktrans trimmed with since=object.time|timesince time=object.time|time %}
@@ -35,17 +40,25 @@
                         {% endblocktrans %}
                         {% if object.duration %}
                             <div>
-                                <small>Duration: {{ object.duration }}</small>
+                                <small>
+                                    {% blocktrans trimmed with duration=object.duration %}
+                                        Duration: {{ duration }}
+                                    {% endblocktrans %}
+                                </small>
                             </div>
                         {% endif %}
                         {% if object.time_since_prev %}
                             <div>
-                                <small>{{ object.time_since_prev }} since previous</small>
+                                <small>
+                                    {% blocktrans trimmed with since=object.time_since_prev %}
+                                        {{ since }} since previous
+                                    {% endblocktrans %}
+                                </small>
                             </div>
                         {% endif %}
                         {% if object.edit_link %}
                             <div>
-                                <small><a href="{{ object.edit_link }}">Edit</a></small>
+                                <small><a href="{{ object.edit_link }}">{% trans "Edit" %}</a></small>
                             </div>
                         {% endif %}
                     </div>
@@ -69,5 +82,5 @@
         {% endif %}
     </h3>
 {% else %}
-    <div class="text-center">No events</div>
+    <div class="text-center">{% trans "No events" %}</div>
 {% endif %}

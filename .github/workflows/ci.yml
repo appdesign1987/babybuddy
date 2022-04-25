@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DJANGO_SETTINGS_MODULE: babybuddy.settings.ci
+      PIPENV_VENV_IN_PROJECT: enabled
     strategy:
-      max-parallel: 4
       matrix:
-        python-version: [ 3.6, 3.7, 3.8 ]
+        python-version: [ '3.6', '3.7', '3.8', '3.9', '3.10' ]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -23,7 +23,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - uses: actions/setup-node@v2
         with:
-          node-version: '10'
+          node-version: '14'
       - run: npm install -g gulp-cli
       - run: npm install
       - name: Install pipenv
@@ -33,14 +33,14 @@ jobs:
 #        id: cache-pipenv
 #        uses: actions/cache@v2
 #        with:
-#          path: ~/.local/share/virtualenvs
+#          path: ./.venv
 #          key: ${{ runner.os }}-python-${{ matrix.python-version }}-pipenv-${{ hashFiles('**/requirements.txt') }}
 #          restore-keys: |
 #            ${{ runner.os }}-python-${{ matrix.python-version }}-pipenv-
       - name: Install dependencies
-        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+#        if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: |
-          pipenv install --deploy --dev
+          pipenv install --dev
       - run: gulp lint
       - run: gulp coverage
       - name: Submit results to Coveralls
@@ -58,3 +58,15 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Deploy demo
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}

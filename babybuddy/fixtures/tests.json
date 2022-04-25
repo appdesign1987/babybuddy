@@ -21,6 +21,17 @@
       "picture": ""
     }
   },
+    {
+    "model": "core.pumping",
+    "pk": 1,
+    "fields":
+    {
+      "child": 1,
+      "amount": 50.0,
+      "time": "2017-11-17T17:52:00Z",
+      "notes": "new device"
+    }
+  },
   {
     "model": "core.diaperchange",
     "pk": 2,
@@ -278,7 +289,8 @@
       "child": 1,
       "start": "2017-11-18T04:30:00Z",
       "end": "2017-11-18T05:30:00Z",
-      "duration": "01:00:00"
+      "duration": "01:00:00",
+      "napping": false
     }
   },
   {
@@ -289,7 +301,8 @@
       "child": 1,
       "start": "2017-11-18T15:00:00Z",
       "end": "2017-11-18T17:00:00Z",
-      "duration": "02:00:00"
+      "duration": "02:00:00",
+      "napping": true
     }
   },
   {
@@ -300,7 +313,8 @@
       "child": 1,
       "start": "2017-11-18T19:00:00Z",
       "end": "2017-11-18T19:30:00Z",
-      "duration": "00:30:00"
+      "duration": "00:30:00",
+      "napping": false
     }
   },
   {
@@ -312,7 +326,8 @@
       "start": "2017-11-19T00:00:00Z",
       "end": "2017-11-19T04:00:00Z",
       "duration": "04:00:00",
-      "notes": "lots of squirming"
+      "notes": "lots of squirming",
+      "napping": false
     }
   },
     {
@@ -394,6 +409,80 @@
       "weight": 9.5,
       "date": "2017-11-18",
       "notes": "before feed"
+    }
+  },
+  {
+    "model": "core.height",
+    "pk": 1,
+    "fields":
+    {
+      "child": 1,
+      "height": 9.5,
+      "date": "2017-11-11"
+    }
+  },
+  {
+    "model": "core.height",
+    "pk": 2,
+    "fields":
+    {
+      "child": 1,
+      "height": 10.5,
+      "date": "2017-11-18",
+      "notes": "before feed"
+    }
+  },
+  {
+    "model": "core.headcircumference",
+    "pk": 1,
+    "fields":
+    {
+      "child": 1,
+      "head_circumference": 5.5,
+      "date": "2017-11-11"
+    }
+  },
+  {
+    "model": "core.headcircumference",
+    "pk": 2,
+    "fields":
+    {
+      "child": 1,
+      "head_circumference": 6.5,
+      "date": "2017-11-18",
+      "notes": "before feed"
+    }
+  },
+  {
+    "model": "core.bmi",
+    "pk": 1,
+    "fields":
+    {
+      "child": 1,
+      "bmi": 25.5,
+      "date": "2017-11-11"
+    }
+  },
+  {
+    "model": "core.bmi",
+    "pk": 2,
+    "fields":
+    {
+      "child": 1,
+      "bmi": 26.5,
+      "date": "2017-11-18",
+      "notes": "before feed"
+    }
+  },
+  {
+    "model": "core.tag",
+    "pk": 1,
+    "fields":
+    {
+      "name": "a name",
+      "slug": "a-name",
+      "color": "#FF0000",
+      "last_used": "2017-11-18T16:00:00Z"
     }
   }
 ]
